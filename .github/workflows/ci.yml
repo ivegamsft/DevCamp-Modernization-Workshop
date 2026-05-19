@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: modern/dotnet
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore DevCamp.Modern.slnx
+
+      - name: Build
+        run: dotnet build DevCamp.Modern.slnx --configuration Release --no-restore
+
+      - name: Publish (artifact)
+        run: dotnet publish DevCamp.Api/DevCamp.Api.csproj -c Release -o ../../artifacts/api
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: devcamp-api
+          path: artifacts/api
+          retention-days: 7
+
+  bicep-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure CLI login (skipped — syntax only)
+        run: az bicep build --file infra/main.bicep

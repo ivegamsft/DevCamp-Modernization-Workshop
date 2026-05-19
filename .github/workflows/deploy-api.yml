@@ -1,0 +1,45 @@
+name: Deploy API
+
+on:
+  workflow_dispatch:
+    inputs:
+      resource_group:
+        description: Resource group containing the web app
+        required: true
+        default: rg-devcamp-modern
+      web_app_name:
+        description: App Service name (from Bicep output webAppName)
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish
+        run: dotnet publish modern/dotnet/DevCamp.Api/DevCamp.Api.csproj -c Release -o ./publish
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to App Service
+        run: |
+          az webapp deploy \
+            --resource-group "${{ github.event.inputs.resource_group }}" \
+            --name "${{ github.event.inputs.web_app_name }}" \
+            --src-path ./publish \
+            --type zip

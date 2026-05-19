@@ -1,0 +1,60 @@
+name: Deploy infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      resource_group:
+        description: Azure resource group name
+        required: true
+        default: rg-devcamp-modern
+      location:
+        description: Azure region
+        required: true
+        default: eastus2
+      name_prefix:
+        description: Short name prefix for resources
+        required: true
+        default: devcamp
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_RESOURCE_GROUP: ${{ github.event.inputs.resource_group }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Ensure resource group
+        run: |
+          az group create --name "${{ github.event.inputs.resource_group }}" --location "${{ github.event.inputs.location }}" 1>/dev/null || true
+
+      - name: Deploy Bicep
+        id: deploy
+        run: |
+          result=$(az deployment group create \
+            --resource-group "${{ github.event.inputs.resource_group }}" \
+            --template-file infra/main.bicep \
+            --parameters namePrefix="${{ github.event.inputs.name_prefix }}" location="${{ github.event.inputs.location }}" \
+            --query properties.outputs -o json)
+          echo "outputs<<EOF" >> $GITHUB_OUTPUT
+          echo "$result" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Summary
+        run: |
+          echo "## Infrastructure deployed" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          echo '${{ steps.deploy.outputs.outputs }}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

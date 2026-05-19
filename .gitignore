@@ -1,0 +1,26 @@
+## Build outputs
+**/bin/
+**/obj/
+**/out/
+
+## NuGet / Node
+**/packages/
+**/node_modules/
+*.nupkg
+
+## IDE / OS
+.vs/
+.vscode/*.log
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+
+## Secrets (never commit real keys)
+**/appsettings.*.local.json
+**/secrets.json
+.env
+.env.*
+
+## Workshop artifacts
+*.pfx
