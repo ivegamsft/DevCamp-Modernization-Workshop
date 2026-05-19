@@ -10,6 +10,7 @@ The legacy DevCamp stack stored **Cosmos/Storage keys** in `Web.config`. The mod
 
 ## Learner flow
 
+0. Run bootstrap once: [`docs/deployment/bootstrap.md`](../deployment/bootstrap.md) (`scripts/bootstrap/Bootstrap-AzureGitHub.ps1`).
 1. Deploy `infra/main.bicep` (CLI or GitHub Actions).
 2. Confirm role assignment for the web app identity in the deployment outputs.
 3. Run or deploy `DevCamp.Api` with only `CosmosDb:Endpoint` configured.

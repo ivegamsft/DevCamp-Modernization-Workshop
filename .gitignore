@@ -21,6 +21,8 @@ Thumbs.db
 **/secrets.json
 .env
 .env.*
+scripts/bootstrap/bootstrap.config.json
+scripts/bootstrap/bootstrap-output.json
 
 ## Workshop artifacts
 *.pfx

@@ -69,6 +69,14 @@ Local/dev must use **Entra ID** (`az login` + data-plane role) or run on App Ser
 
 ---
 
+## 2026-05-19 — Bootstrap script for Azure + GitHub OIDC
+
+- Added `scripts/bootstrap/Bootstrap-AzureGitHub.ps1` and `bootstrap.config.example.json`.
+- Guide: `docs/deployment/bootstrap.md` (Entra app, federated credential, RG RBAC, `gh secret set`).
+- `.gitignore` excludes local `bootstrap.config.json` and `bootstrap-output.json`.
+
+---
+
 ## How to extend this journal
 
 Add a new dated section per migration milestone. Each section should list: sources touched, new projects, breaking changes, verification commands, and open issues.

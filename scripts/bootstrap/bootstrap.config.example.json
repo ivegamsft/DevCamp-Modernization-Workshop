@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/json",
+  "subscriptionId": "00000000-0000-0000-0000-000000000000",
+  "tenantId": "",
+  "resourceGroupName": "rg-devcamp-modern",
+  "location": "eastus2",
+  "githubOwner": "ivegamsft",
+  "githubRepo": "DevCamp-Modernization-Workshop",
+  "githubBranch": "main",
+  "githubEnvironment": "",
+  "appRegistrationDisplayName": "gh-devcamp-modernization-workshop",
+  "federatedCredentialName": "github-actions-main",
+  "assignResourceGroupRoles": true,
+  "createResourceGroup": true,
+  "setGitHubSecrets": true
+}
