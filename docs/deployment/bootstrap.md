@@ -125,6 +125,7 @@ Federated credential **subject** examples:
 
 | Symptom | Fix |
 |---------|-----|
+| `ConvertFrom-Json` / "Error parsing comment" on `az account show` | Fixed in script: always uses `-o json` and does not merge stderr into JSON. Pull latest `Bootstrap-AzureGitHub.ps1`. |
 | `AADSTS700213` / no matching federated identity | Subject must match repo, branch, or environment exactly; re-run bootstrap or edit credential in Entra portal |
 | Bicep fails on Cosmos role assignment | Ensure **User Access Administrator** on the RG for the GitHub SP |
 | `gh secret set` permission denied | `gh auth refresh -s admin:repo` or set secrets manually in GitHub UI |

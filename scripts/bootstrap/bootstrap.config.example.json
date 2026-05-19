@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json.schemastore.org/json",
   "subscriptionId": "00000000-0000-0000-0000-000000000000",
   "tenantId": "",
   "resourceGroupName": "rg-devcamp-modern",

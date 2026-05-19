@@ -47,11 +47,32 @@ function Invoke-Checked {
     }
 }
 
-function Get-AzCliJson([string[]] $Args) {
-    $raw = az @Args 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "az $($Args -join ' ') failed: $raw" }
-    if ([string]::IsNullOrWhiteSpace($raw)) { return $null }
-    return $raw | ConvertFrom-Json
+function Get-AzCliJson([string[]] $AzArguments) {
+    # Build argument list; always request JSON on stdout (never merge stderr into JSON text).
+    $cmdArgs = [System.Collections.Generic.List[string]]::new()
+    foreach ($a in $AzArguments) { [void]$cmdArgs.Add($a) }
+    if ($AzArguments -notcontains '-o' -and $AzArguments -notcontains '--output') {
+        [void]$cmdArgs.Add('-o')
+        [void]$cmdArgs.Add('json')
+    }
+
+    $stdout = & az @cmdArgs 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        $detail = (& az @cmdArgs 2>&1 | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+        throw "az $($cmdArgs -join ' ') failed: $detail"
+    }
+
+    if ($null -eq $stdout) { return $null }
+
+    $jsonText = if ($stdout -is [string]) {
+        $stdout
+    } else {
+        ($stdout | ForEach-Object { if ($_ -is [string]) { $_ } else { $_.ToString() } }) -join [Environment]::NewLine
+    }
+    $jsonText = $jsonText.Trim()
+    if ([string]::IsNullOrWhiteSpace($jsonText)) { return $null }
+
+    return $jsonText | ConvertFrom-Json
 }
 
 # --- Load config ---
@@ -119,14 +140,20 @@ $existingApps = Get-AzCliJson @(
     '-o', 'json'
 )
 $app = $null
-if ($existingApps -and $existingApps.Count -gt 0) {
-    $app = $existingApps[0]
-    Write-Host "Using existing app registration appId=$($app.appId)"
-} else {
+if ($null -ne $existingApps) {
+    $appList = @($existingApps)
+    if ($appList.Count -gt 0) {
+        $app = $appList[0]
+        Write-Host "Using existing app registration appId=$($app.appId)"
+    }
+}
+if (-not $app -and -not $DryRun) {
     if ($PSCmdlet.ShouldProcess($appDisplayName, 'Create app registration')) {
         $app = Get-AzCliJson @('ad', 'app', 'create', '--display-name', $appDisplayName, '-o', 'json')
         Write-Host "Created app registration appId=$($app.appId)"
     }
+} elseif (-not $app -and $DryRun) {
+    Write-Host "[DryRun] Would create app registration: $appDisplayName"
 }
 
 if (-not $app) {
@@ -144,13 +171,18 @@ if (-not $app) {
 # --- Service principal ---
 Write-Step 'Service principal'
 $sp = Get-AzCliJson @('ad', 'sp', 'list', '--filter', "appId eq '$clientId'", '-o', 'json')
-if (-not $sp -or $sp.Count -eq 0) {
-    if ($PSCmdlet.ShouldProcess($clientId, 'Create service principal')) {
-        Invoke-Checked { az ad sp create --id $clientId --output none } 'az ad sp create'
+if (-not $DryRun) {
+    if (-not $sp -or @($sp).Count -eq 0) {
+        if ($PSCmdlet.ShouldProcess($clientId, 'Create service principal')) {
+            Invoke-Checked { az ad sp create --id $clientId --output none } 'az ad sp create'
+        }
     }
+    $spObjectId = (az ad sp show --id $clientId --query id -o tsv)
+    if ($LASTEXITCODE -ne 0) { throw 'Could not resolve service principal object id.' }
+} else {
+    $spObjectId = '00000000-0000-0000-0000-000000000000'
+    Write-Host '[DryRun] Skipping service principal resolution'
 }
-$spObjectId = (az ad sp show --id $clientId --query id -o tsv)
-if ($LASTEXITCODE -ne 0) { throw 'Could not resolve service principal object id.' }
 
 # --- RBAC on resource group ---
 if ($assignRgRoles) {
@@ -252,9 +284,9 @@ $summary = [ordered]@{
     federatedSubject    = $federatedSubject
     githubRepo          = "$githubOwner/$githubRepo"
     nextSteps           = @(
-        'GitHub: Actions → Deploy infrastructure (workflow_dispatch)'
+        'GitHub: Actions - Deploy infrastructure (workflow_dispatch)'
         'Note Bicep outputs: webAppName, webAppHostName, cosmosEndpoint'
-        'GitHub: Actions → Deploy API with web_app_name and resource_group'
+        'GitHub: Actions - Deploy API with web_app_name and resource_group'
         'Local: az login; assign Cosmos DB Built-in Data Contributor to your user; set CosmosDb__Endpoint'
     )
 }
